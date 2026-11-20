@@ -153,3 +153,9 @@ LAST SEEN   TYPE      REASON                  OBJECT                            
 46s         Warning   BackOff                 pod/podinfo-59f7587cbd-9pv7s         Back-off restarting failed container fix-data-permissions in pod podinfo-59f7587cbd-9pv7s_mst(978bf1da-536a-4d3c-b630-e0061ac7296d)
 [exit code: 0]
 
+### 2026-11-20T11:51:41+01:00  (host: jozsef-nagy-nb02)
+$ docker exec mst-control-plane ls -ln /var/local-path-provisioner/pvc-344730ef-eaeb-4a80-a163-74d1bd41256e_mst_podinfo-data
+total 4
+-rw-r--r-- 1 100 101 71 Nov 20 10:38 b8e715ae1a133891a61753cfa81fb2d5b6def9b1
+[exit code: 0]
+
