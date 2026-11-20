@@ -1,0 +1,8 @@
+### 2026-11-20T11:39:27+01:00  (host: jozsef-nagy-nb02)
+$ curl -sS -o evidence/T03-readback.bin -w "HTTP %{http_code}, %{size_download} bytes\n" http://127.0.0.1:9898/store/$HASH && cmp testdata/record.txt evidence/T03-readback.bin && echo "MATCH: bajtrol bajtra egyezik" && sha256sum testdata/record.txt evidence/T03-readback.bin
+HTTP 202, 71 bytes
+MATCH: bajtrol bajtra egyezik
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  testdata/record.txt
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  evidence/T03-readback.bin
+[exit code: 0]
+

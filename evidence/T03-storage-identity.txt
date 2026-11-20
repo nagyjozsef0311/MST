@@ -1,0 +1,8 @@
+### 2026-11-20T11:39:55+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst get pvc podinfo-data -o custom-columns=PVC:.metadata.name,UID:.metadata.uid,STATUS:.status.phase,VOLUME:.spec.volumeName,CLASS:.spec.storageClassName; kubectl get pv $(kubectl -n mst get pvc podinfo-data -o jsonpath="{.spec.volumeName}") -o custom-columns=PV:.metadata.name,RECLAIM:.spec.persistentVolumeReclaimPolicy,HOSTPATH:.spec.hostPath.path,LOCALPATH:.spec.local.path
+PVC            UID                                    STATUS   VOLUME                                     CLASS
+podinfo-data   344730ef-eaeb-4a80-a163-74d1bd41256e   Bound    pvc-344730ef-eaeb-4a80-a163-74d1bd41256e   standard
+PV                                         RECLAIM   HOSTPATH                                                                                LOCALPATH
+pvc-344730ef-eaeb-4a80-a163-74d1bd41256e   Delete    /var/local-path-provisioner/pvc-344730ef-eaeb-4a80-a163-74d1bd41256e_mst_podinfo-data   <none>
+[exit code: 0]
+

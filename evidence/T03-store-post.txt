@@ -1,0 +1,12 @@
+### 2026-11-20T11:38:26+01:00  (host: jozsef-nagy-nb02)
+$ curl -sS -i --data-binary @testdata/record.txt http://127.0.0.1:9898/store
+HTTP/1.1 202 Accepted
+Content-Type: application/json; charset=utf-8
+X-Content-Type-Options: nosniff
+Date: Fri, 20 Nov 2026 10:38:26 GMT
+Content-Length: 56
+
+{
+  "hash": "b8e715ae1a133891a61753cfa81fb2d5b6def9b1"
+}[exit code: 0]
+

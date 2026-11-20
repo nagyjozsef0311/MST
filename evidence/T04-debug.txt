@@ -1,0 +1,155 @@
+### 2026-11-20T11:47:52+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst get pods -o wide; kubectl -n mst get pvc; kubectl get pv
+NAME                       READY   STATUS       RESTARTS        AGE     IP           NODE                NOMINATED NODE   READINESS GATES
+podinfo-59f7587cbd-9pv7s   0/1     Init:Error   5 (2m37s ago)   4m12s   10.244.0.8   mst-control-plane   <none>           <none>
+NAME           STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+podinfo-data   Bound    pvc-344730ef-eaeb-4a80-a163-74d1bd41256e   1Gi        RWO            standard       <unset>                 29m
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-344730ef-eaeb-4a80-a163-74d1bd41256e   1Gi        RWO            Retain           Bound    mst/podinfo-data   standard       <unset>                          29m
+[exit code: 0]
+
+### 2026-11-20T11:48:27+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst describe pod -l app.kubernetes.io/name=podinfo
+Name:             podinfo-59f7587cbd-9pv7s
+Namespace:        mst
+Priority:         0
+Service Account:  default
+Node:             mst-control-plane/172.18.0.2
+Start Time:       Fri, 20 Nov 2026 11:43:40 +0100
+Labels:           app.kubernetes.io/name=podinfo
+                  pod-template-hash=59f7587cbd
+Annotations:      <none>
+Status:           Pending
+IP:               10.244.0.8
+IPs:
+  IP:           10.244.0.8
+Controlled By:  ReplicaSet/podinfo-59f7587cbd
+Init Containers:
+  fix-data-permissions:
+    Container ID:  containerd://09ea5ba56a877ee75e15c708ad6d8e551624401efbc269697cdfeb5b2866435d
+    Image:         busybox:1.37.0
+    Image ID:      docker.io/library/busybox@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      sh
+      -c
+      chown -R 100:101 /data && chmod 0750 /data && ls -ldn /data
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    1
+      Started:      Fri, 20 Nov 2026 11:46:36 +0100
+      Finished:     Fri, 20 Nov 2026 11:46:36 +0100
+    Ready:          False
+    Restart Count:  5
+    Environment:    <none>
+    Mounts:
+      /data from data (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-66f2l (ro)
+Containers:
+  podinfo:
+    Container ID:  
+    Image:         stefanprodan/podinfo:6.14.1
+    Image ID:      
+    Port:          9898/TCP (http)
+    Host Port:     0/TCP (http)
+    Command:
+      ./podinfo
+    Args:
+      --port=9898
+      --data-path=/data
+      --level=info
+    State:          Waiting
+      Reason:       PodInitializing
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      memory:  128Mi
+    Requests:
+      cpu:        10m
+      memory:     32Mi
+    Liveness:     http-get http://:http/healthz delay=0s timeout=1s period=10s successThreshold=1 failureThreshold=3
+    Readiness:    http-get http://:http/readyz delay=0s timeout=1s period=5s successThreshold=1 failureThreshold=3
+    Environment:  <none>
+    Mounts:
+      /data from data (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-66f2l (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 False 
+  Ready                       False 
+  ContainersReady             False 
+  PodScheduled                True 
+Volumes:
+  data:
+    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
+    ClaimName:  podinfo-data
+    ReadOnly:   false
+  kube-api-access-66f2l:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                   From               Message
+  ----     ------     ----                  ----               -------
+  Normal   Scheduled  4m47s                 default-scheduler  Successfully assigned mst/podinfo-59f7587cbd-9pv7s to mst-control-plane
+  Normal   Pulled     111s (x6 over 4m46s)  kubelet            spec.initContainers{fix-data-permissions}: Container image "busybox:1.37.0" already present on machine and can be accessed by the pod
+  Normal   Created    111s (x6 over 4m46s)  kubelet            spec.initContainers{fix-data-permissions}: Container created
+  Normal   Started    111s (x6 over 4m46s)  kubelet            spec.initContainers{fix-data-permissions}: Container started
+  Warning  BackOff    24s (x7 over 4m45s)   kubelet            spec.initContainers{fix-data-permissions}: Back-off restarting failed container fix-data-permissions in pod podinfo-59f7587cbd-9pv7s_mst(978bf1da-536a-4d3c-b630-e0061ac7296d)
+[exit code: 0]
+
+### 2026-11-20T11:48:41+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst logs -l app.kubernetes.io/name=podinfo -c fix-data-permissions --tail=20
+chown: /data: Permission denied
+[exit code: 0]
+
+### 2026-11-20T11:48:45+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst logs -l app.kubernetes.io/name=podinfo -c podinfo --tail=50; kubectl -n mst logs -l app.kubernetes.io/name=podinfo -c podinfo --previous --tail=50
+Error from server (BadRequest): container "podinfo" in pod "podinfo-59f7587cbd-9pv7s" is waiting to start: PodInitializing
+Error from server (BadRequest): previous terminated container "podinfo" in pod "podinfo-59f7587cbd-9pv7s" not found
+[exit code: 1]
+
+### 2026-11-20T11:48:49+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst get events --sort-by=.lastTimestamp | tail -30
+LAST SEEN   TYPE      REASON                  OBJECT                               MESSAGE
+30m         Normal    ScalingReplicaSet       deployment/podinfo                   Scaled up replica set podinfo-59f7587cbd from 0 to 1
+30m         Normal    SuccessfulCreate        replicaset/podinfo-59f7587cbd        Created pod: podinfo-59f7587cbd-t9sb4
+30m         Normal    WaitForFirstConsumer    persistentvolumeclaim/podinfo-data   waiting for first consumer to be created before binding
+30m         Normal    ExternalProvisioning    persistentvolumeclaim/podinfo-data   Waiting for a volume to be created either by the external provisioner 'rancher.io/local-path' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+30m         Normal    Provisioning            persistentvolumeclaim/podinfo-data   External provisioner is provisioning volume for claim "mst/podinfo-data"
+30m         Normal    Scheduled               pod/podinfo-59f7587cbd-t9sb4         Successfully assigned mst/podinfo-59f7587cbd-t9sb4 to mst-control-plane
+30m         Normal    ProvisioningSucceeded   persistentvolumeclaim/podinfo-data   Successfully provisioned volume pvc-344730ef-eaeb-4a80-a163-74d1bd41256e
+30m         Normal    Pulling                 pod/podinfo-59f7587cbd-t9sb4         Pulling image "busybox:1.37.0"
+30m         Normal    Pulling                 pod/podinfo-59f7587cbd-t9sb4         Pulling image "stefanprodan/podinfo:6.14.1"
+30m         Normal    Pulled                  pod/podinfo-59f7587cbd-t9sb4         Successfully pulled image "busybox:1.37.0" in 2.817s (2.817s including waiting). Image size: 2222118 bytes.
+30m         Normal    Created                 pod/podinfo-59f7587cbd-t9sb4         Container created
+30m         Normal    Started                 pod/podinfo-59f7587cbd-t9sb4         Container started
+30m         Normal    Pulled                  pod/podinfo-59f7587cbd-t9sb4         Successfully pulled image "stefanprodan/podinfo:6.14.1" in 3.47s (3.47s including waiting). Image size: 33865369 bytes.
+30m         Normal    Created                 pod/podinfo-59f7587cbd-t9sb4         Container created
+30m         Normal    Started                 pod/podinfo-59f7587cbd-t9sb4         Container started
+30m         Warning   Unhealthy               pod/podinfo-59f7587cbd-t9sb4         Readiness probe failed: Get "http://10.244.0.6:9898/readyz": dial tcp 10.244.0.6:9898: connect: connection refused
+22m         Normal    Scheduled               pod/netcheck                         Successfully assigned mst/netcheck to mst-control-plane
+22m         Normal    Pulling                 pod/netcheck                         Pulling image "curlimages/curl:8.17.0"
+22m         Normal    Pulled                  pod/netcheck                         Successfully pulled image "curlimages/curl:8.17.0" in 2.915s (2.915s including waiting). Image size: 9882231 bytes.
+22m         Normal    Created                 pod/netcheck                         Container created
+22m         Normal    Started                 pod/netcheck                         Container started
+5m9s        Warning   Unhealthy               pod/podinfo-59f7587cbd-t9sb4         Readiness probe failed: HTTP probe failed with statuscode: 503
+5m9s        Normal    Killing                 pod/podinfo-59f7587cbd-t9sb4         Stopping container podinfo
+5m9s        Normal    SuccessfulCreate        replicaset/podinfo-59f7587cbd        Created pod: podinfo-59f7587cbd-9pv7s
+5m9s        Normal    Scheduled               pod/podinfo-59f7587cbd-9pv7s         Successfully assigned mst/podinfo-59f7587cbd-9pv7s to mst-control-plane
+2m13s       Normal    Started                 pod/podinfo-59f7587cbd-9pv7s         Container started
+2m13s       Normal    Created                 pod/podinfo-59f7587cbd-9pv7s         Container created
+2m13s       Normal    Pulled                  pod/podinfo-59f7587cbd-9pv7s         Container image "busybox:1.37.0" already present on machine and can be accessed by the pod
+46s         Warning   BackOff                 pod/podinfo-59f7587cbd-9pv7s         Back-off restarting failed container fix-data-permissions in pod podinfo-59f7587cbd-9pv7s_mst(978bf1da-536a-4d3c-b630-e0061ac7296d)
+[exit code: 0]
+

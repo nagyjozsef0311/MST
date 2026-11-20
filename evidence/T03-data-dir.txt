@@ -1,0 +1,12 @@
+### 2026-11-20T11:40:20+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst exec deploy/podinfo -c podinfo -- ls -ln /data
+total 4
+-rw-r--r--    1 100      101             71 Nov 20 10:38 b8e715ae1a133891a61753cfa81fb2d5b6def9b1
+[exit code: 0]
+
+### 2026-11-20T11:41:22+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst exec deploy/podinfo -c podinfo -- ls -ln /data
+total 4
+-rw-r--r--    1 100      101             71 Nov 20 10:38 b8e715ae1a133891a61753cfa81fb2d5b6def9b1
+[exit code: 0]
+

@@ -1,0 +1,7 @@
+### 2026-11-20T11:43:21+01:00  (host: jozsef-nagy-nb02)
+$ kubectl patch pv $(kubectl -n mst get pvc podinfo-data -o jsonpath="{.spec.volumeName}") -p "{\"spec\":{\"persistentVolumeReclaimPolicy\":\"Retain\"}}"; kubectl get pv
+persistentvolume/pvc-344730ef-eaeb-4a80-a163-74d1bd41256e patched
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-344730ef-eaeb-4a80-a163-74d1bd41256e   1Gi        RWO            Retain           Bound    mst/podinfo-data   standard       <unset>                          24m
+[exit code: 0]
+
