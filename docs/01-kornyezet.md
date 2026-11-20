@@ -98,18 +98,26 @@ sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && cd ~
 
 ## 1.4 kind
 
-Nézd meg a legfrissebb stabil kiadás számát itt: https://github.com/kubernetes-sigs/kind/releases. Ezt írd a `vX.Y.Z` helyére. A kiadási jegyzetben az is szerepel, melyik Kubernetes verziót futtatja alapból.
+Először kérdezd le a legfrissebb stabil kiadás számát. A GitHub a `/releases/latest` címet átirányítja a legújabb tagre, ebből olvassuk ki:
 
 ```bash
-export KIND_VERSION=vX.Y.Z
+export KIND_VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/kubernetes-sigs/kind/releases/latest | sed 's#.*/tag/##')
 ```
 
 ```bash
-cd /tmp && curl -Lo kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+echo "$KIND_VERSION"
+```
+
+Ennek valami `v0.NN.N` alakú értéket kell kiírnia. Ha üres, vagy `vX.Y.Z`-t látsz, **ne menj tovább**. A kiadási jegyzetben (https://github.com/kubernetes-sigs/kind/releases) az is szerepel, melyik Kubernetes verziót futtatja alapból a kind.
+
+> A `curl -f` kapcsoló fontos: hibás URL esetén (HTTP 404) hibával kilép, ahelyett hogy a „Not Found” hibaoldalt csendben elmentené fájlként.
+
+```bash
+cd /tmp && curl -fLo kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
 ```
 
 ```bash
-curl -Lo kind.sha256sum "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64.sha256sum"
+curl -fLo kind.sha256sum "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64.sha256sum"
 ```
 
 ```bash
@@ -167,5 +175,7 @@ ev ENV-tools.txt 'docker version; kind version; kubectl version --client; git --
 | `permission denied ... docker.sock` | még nincs érvényben a csoporttagság | ki- és bejelentkezés |
 | `sha256sum: WARNING: 1 computed checksum did NOT match` | hibás vagy félbeszakadt letöltés | töröld és töltsd le újra |
 | `kind: command not found` | nincs a PATH-ban | `ls -l /usr/local/bin/kind` |
+| `/usr/local/bin/kind: line 1: Not: command not found` | a letöltött „bináris” valójában egy `Not Found` szöveg, mert hibás volt a verziószám (pl. `vX.Y.Z` maradt benne) | `file /usr/local/bin/kind` → „ELF 64-bit” kell legyen; töltsd le újra a fenti `KIND_VERSION` lépéssel |
+| `[exit code: 127]` vagy `no such file` a 02. fejezetben | nem a repó gyökerében vagy (`~` helyett `~/MST` kell) | `cd ~/MST` |
 
 **Következő:** [02-telepites.md](02-telepites.md)

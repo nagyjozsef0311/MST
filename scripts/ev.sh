@@ -21,7 +21,11 @@ ev() {
     return 2
   fi
   local root file
-  root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  root="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [ -z "$root" ] || [ ! -f "$root/deployment/kustomization.yaml" ]; then
+    echo "HIBA: nem az MST repóban vagy (most: $PWD). Futtasd: cd ~/MST" >&2
+    return 2
+  fi
   file="$1"
   shift
   mkdir -p "$root/evidence"
