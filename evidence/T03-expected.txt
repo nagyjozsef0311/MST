@@ -1,0 +1,9 @@
+### 2026-11-20T11:37:36+01:00  (host: jozsef-nagy-nb02)
+$ cat -A testdata/record.txt; wc -c testdata/record.txt; sha256sum testdata/record.txt; sha1sum testdata/record.txt
+MST-ID=CFXLIQ$
+MST-NOTE=Track A podinfo persistence test record, line 2$
+71 testdata/record.txt
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  testdata/record.txt
+b8e715ae1a133891a61753cfa81fb2d5b6def9b1  testdata/record.txt
+[exit code: 0]
+
