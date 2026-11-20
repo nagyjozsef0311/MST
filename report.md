@@ -72,9 +72,30 @@ A kubectl és a szerver verziója között csak patch-eltérés van (1.37.2 és 
 | 9898/TCP (host) | `127.0.0.1:9898` és `[::1]:9898`, a `kubectl port-forward` nyitja | csak a saját gépem | kézzel indított, ideiglenes alagút a teszteléshez |
 | 6443/TCP → host 37085 | `127.0.0.1:37085` | csak a saját gépem (kubectl) | a kind így publikálja az API szervert |
 
+Kivonat a hoston figyelő portokról (`C2-host-listening-ports.txt`):
+
+```
+LISTEN 0  4096   127.0.0.1:9898    0.0.0.0:*   users:(("kubectl",pid=16773,fd=7))
+LISTEN 0  4096   127.0.0.1:37085   0.0.0.0:*
+LISTEN 0  4096       [::1]:9898       [::]:*   users:(("kubectl",pid=16773,fd=8))
+mst-control-plane   127.0.0.1:37085->6443/tcp
+```
+
 Szándékosan semmit nem publikáltam a `0.0.0.0` címre, így a podinfo a helyi hálózat többi gépéről nem érhető el. A `C2-host-listening-ports.txt` szerint a gépen a `127.0.0.1:631` porton is figyel valami: ez a CUPS nyomtatási szolgáltatás, nem a feladat része.
 
-A Podok a Service **nevén** érik el egymást. A `C2-incluster-client.txt` szerint egy eldobható kliens Pod (`curlimages/curl:8.17.0`) a `podinfo.mst.svc.cluster.local` nevet a cluster DNS-szerverén (CoreDNS, 10.96.0.10) a 10.96.225.68 címre oldotta fel, és a `http://podinfo:9898/readyz` kérésre `200 OK` választ kapott. A Service mögött lévő tényleges Pod címét az EndpointSlice mutatja (`C2-service-endpoints.txt`: 10.244.0.6:9898).
+A Podok a Service **nevén** érik el egymást. A `C2-incluster-client.txt` szerint egy eldobható kliens Pod (`curlimages/curl:8.17.0`) a `podinfo.mst.svc.cluster.local` nevet a cluster DNS-szerverén (CoreDNS, 10.96.0.10) a 10.96.225.68 címre oldotta fel, és a `http://podinfo:9898/readyz` kérésre `200 OK` választ kapott. Kivonat (`C2-incluster-client.txt`):
+
+```
+Server:		10.96.0.10
+Name:	podinfo.mst.svc.cluster.local
+Address: 10.96.225.68
+HTTP/1.1 200 OK
+{
+  "status": "OK"
+}
+```
+
+A Service mögött lévő tényleges Pod címét az EndpointSlice mutatja (`C2-service-endpoints.txt`: 10.244.0.6:9898).
 
 **Jogosultságok:** a podinfo image `app` felhasználóval fut (UID 100, GID 101), és nem rootként indítom. Az alkalmazás konténere minden Linux képességet eldob (`drop: ALL`), és nem kaphat magasabb jogot (`allowPrivilegeEscalation: false`). Hogy a `/data` könyvtárba írni tudjon, egy rövid init container a podinfo indulása előtt beállítja a könyvtár tulajdonosát (`chown 100:101 /data`, `chmod 0750 /data`). Ez a container rootként fut, de csak a `CHOWN` és a `FOWNER` képességet kapja meg. Kubernetesben az `fsGroup` beállítás szokott erre szolgálni, de a kind `local-path` tárolója hostPath alapú, és ott ez nem állítja át a tulajdonost.
 
@@ -96,6 +117,22 @@ drwxr-x---    2 100      101           4096 Nov 20 10:18 /data
 {"level":"info",...,"msg":"Starting podinfo","version":"6.14.1",...,"port":"9898"}
 ```
 
+Az elérés ellenőrzése a hostról, port-forwardon keresztül (`T01-T02-readyz.txt`, `T01-T02-version.txt`):
+
+```
+$ curl -sS -i http://127.0.0.1:9898/readyz
+HTTP/1.1 200 OK
+{
+  "status": "OK"
+}
+$ curl -sS -i http://127.0.0.1:9898/version
+HTTP/1.1 200 OK
+{
+  "commit": "eec06d1ea459af4cb4e10e806f8be7c7bd58b361",
+  "version": "6.14.1"
+}
+```
+
 **Hogyan alkalmazható újra a konfiguráció, és hogyan hozható újra létre a container adatvesztés nélkül?** A `kubectl apply -k deployment/` bármikor újrafuttatható: mindig a fájlokban leírt állapotra hozza a clustert, és ha nincs eltérés, nem változtat semmit (`C1-apply-2-idempotent.txt`, `T06-apply-again-idempotent.txt`). Az alkalmazás Podját a `kubectl -n mst delete pod -l app.kubernetes.io/name=podinfo` paranccsal lehet újra létrehozni. A Deployment (pontosabban a ReplicaSet) ilyenkor magától új Podot indít, amely ugyanazt a `podinfo-data` PVC-t csatolja. A PVC egy külön Kubernetes objektum, a Pod törlése nem érinti.
 
 **A beadás előtti ellenőrzés: a README reprodukálhatósága.** Miután a YAML fájlokból kivettem a kommenteket, a futó clusteren a `kubectl diff -k deployment/` üres maradt (`C1-comment-cleanup.txt`), vagyis a kommentek törlése a konfigurációt nem változtatta meg. Ezután a README lépéseit szó szerint követve egy második, eldobható clusteren (`mst2`) a teljes életciklust megismételtem (`C1-readme-repro.txt`):
@@ -109,7 +146,7 @@ drwxr-x---    2 100      101           4096 Nov 20 10:18 /data
 
 Ezután a `mst2` clustert töröltem. Az eredeti `mst` clusterben a Pod (`podinfo-6c784dc597-74dvc`) és a PVC (`344730ef-…`, `Bound`) változatlanul megmaradt, a `/version` továbbra is 6.17.0-t adott, és az eredeti rekord `MATCH` volt. Megfigyeltem, hogy közvetlenül a cluster létrehozása után a node néhány másodpercig `NotReady` állapotú volt; ez a telepítést nem zavarta, és a README-be is beírtam.
 
-**Hogyan választható ki a verzió új telepítéshez?** A verziót kizárólag a `deployment/deployment.yaml` `image:` sora határozza meg; a beadott állapotban ez `6.17.0`. Új telepítés ezzel a verzióval a README 1–3. lépésével történik. Ha valaki az eredeti `6.14.1`-gyel akar kezdeni, az első telepítés előtt visszaírja a taget (README 2. lépés). Ezt **csak új clusterben, üres PVC-vel** szabad megtenni. Olyan tárolóra, amelyet a 6.17.0 már használt, nem indítok régebbi verziót, mert a régebbi alkalmazás nem feltétlenül kezeli helyesen az újabb által írt adatot. A git historyban mindkét állapot megvan: `dc7a03e` (6.14.1) és `7d4602a` (6.17.0).
+**Hogyan választható ki a verzió új telepítéshez?** A verziót kizárólag a `deployment/deployment.yaml` `image:` sora határozza meg; a beadott állapotban ez `6.17.0`. Új telepítés ezzel a verzióval a README 1–3. lépésével történik. Ha valaki az eredeti `6.14.1`-gyel akar kezdeni, az első telepítés előtt visszaírja a taget (README 2. lépés). Ezt **csak új clusterben, üres PVC-vel** szabad megtenni. Olyan tárolóra, amelyet a 6.17.0 már használt, nem indítok régebbi verziót, mert a régebbi alkalmazás nem feltétlenül kezeli helyesen az újabb által írt adatot.
 
 ## 5. Adatmegőrzés (T03, T04)
 
@@ -121,13 +158,30 @@ A `testdata/record.txt` két ASCII sort tartalmaz, összesen 71 bájtot. Az elv�
 MST-ID=CFXLIQ$
 MST-NOTE=Track A podinfo persistence test record, line 2$
 71 testdata/record.txt
-SHA-256: 2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5
-SHA-1:   b8e715ae1a133891a61753cfa81fb2d5b6def9b1
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  testdata/record.txt
+b8e715ae1a133891a61753cfa81fb2d5b6def9b1  testdata/record.txt
 ```
 
 Az írás (`curl --data-binary @testdata/record.txt …/store`) válasza `HTTP/1.1 202 Accepted` és `{"hash": "b8e715ae1a133891a61753cfa81fb2d5b6def9b1"}` lett (`T03-store-post.txt`). A hash megegyezik a fájl SHA-1 összegével, vagyis a podinfo a tartalom alapján nevezi el a fájlt. Ez a név csak cím; az egyezést ettől függetlenül `cmp`-vel és SHA-256-tal ellenőriztem.
 
-A visszaolvasás (`GET /store/b8e715ae…`) után a `cmp` nem talált eltérést, és a két SHA-256 azonos (`T03-store-get.txt`: `MATCH`, `exit code: 0`). Megfigyeltem, hogy a podinfo olvasáskor is `202`-es státuszt ad, nem `200`-at. Ezért az ellenőrzésben nem a státuszkódra, hanem a bájtszintű összehasonlításra támaszkodtam.
+```
+$ curl -sS -i --data-binary @testdata/record.txt http://127.0.0.1:9898/store
+HTTP/1.1 202 Accepted
+{
+  "hash": "b8e715ae1a133891a61753cfa81fb2d5b6def9b1"
+}
+```
+
+A visszaolvasás (`GET /store/b8e715ae…`) után a `cmp` nem talált eltérést, és a két SHA-256 azonos (`T03-store-get.txt`: `MATCH`, `exit code: 0`). 
+
+```
+HTTP 202, 71 bytes
+MATCH: bajtrol bajtra egyezik
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  testdata/record.txt
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  evidence/T03-readback.bin
+```
+
+Megfigyeltem, hogy a podinfo olvasáskor is `202`-es státuszt ad, nem `200`-at. Ezért az ellenőrzésben nem a státuszkódra, hanem a bájtszintű összehasonlításra támaszkodtam.
 
 ### A tároló azonosítása
 
@@ -142,9 +196,35 @@ A PV reclaim policyjét `Delete`-ről `Retain`-re állítottam (`T03-pv-retain.t
 
 ### Az alkalmazás Podjának lecserélése (T04)
 
-**1. kísérlet – FAIL.** Töröltem a `podinfo-59f7587cbd-t9sb4` Podot (UID `aa4909c1-ff45-41e2-9b52-aaa73f634a0a`). A ReplicaSet azonnal létrehozta az új `podinfo-59f7587cbd-9pv7s` Podot, de az 180 másodperc alatt sem lett `Ready` (`T04-replace.txt`, `exit code: 1`). A hibakeresés (`T04-debug.txt`) szerint a Pod `Init:Error` és `CrashLoopBackOff` állapotban volt, az init container logjában pedig ez állt: `chown: /data: Permission denied`. Az okot és a javítást a 9.2. pont írja le. Az adat ez idő alatt sértetlen maradt: a node-on ellenőriztem, hogy a 71 bájtos fájl a helyén van (`T04-debug.txt`, utolsó bejegyzés). A rekordot nem írtam újra.
+**1. kísérlet – FAIL.** Töröltem a `podinfo-59f7587cbd-t9sb4` Podot (UID `aa4909c1-ff45-41e2-9b52-aaa73f634a0a`). A ReplicaSet azonnal létrehozta az új `podinfo-59f7587cbd-9pv7s` Podot, de az 180 másodperc alatt sem lett `Ready` (`T04-replace.txt`, `exit code: 1`). A hibakeresés (`T04-debug.txt`) szerint a Pod `Init:Error` és `CrashLoopBackOff` állapotban volt, az init container logjában pedig ez állt: `chown: /data: Permission denied`. Kivonat (`T04-replace.txt`, `T04-debug.txt`):
 
-**Javítás.** Az init container parancsából kivettem a `-R` kapcsolót (`T04-fix.txt`: `git diff`, `kubectl diff`, `kubectl apply`; git commit `99e12b2`). A `kubectl diff` szerint csak a Deployment init container parancsa változott. Az alkalmazás után létrejött egy új ReplicaSet (`podinfo-7486c4bcb7`), a régi 0-ra skálázódott, az új Pod (`podinfo-7486c4bcb7-k62nx`) pedig elindult.
+```
+pod "podinfo-59f7587cbd-t9sb4" deleted from mst namespace
+error: timed out waiting for the condition on pods/podinfo-59f7587cbd-9pv7s
+podinfo-59f7587cbd-9pv7s   0/1   Init:Error   5 (2m37s ago)   4m12s
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Exit Code:    1
+$ kubectl -n mst logs ... -c fix-data-permissions
+chown: /data: Permission denied
+$ docker exec mst-control-plane ls -ln /var/local-path-provisioner/pvc-344730ef-..._mst_podinfo-data
+-rw-r--r-- 1 100 101 71 Nov 20 10:38 b8e715ae1a133891a61753cfa81fb2d5b6def9b1
+```
+
+Az okot és a javítást a 9.2. pont írja le. Az adat ez idő alatt sértetlen maradt: a node-on ellenőriztem, hogy a 71 bájtos fájl a helyén van (`T04-debug.txt`, utolsó bejegyzés). A rekordot nem írtam újra.
+
+**Javítás.** Az init container parancsából kivettem a `-R` kapcsolót (`T04-fix.txt`: `git diff`, `kubectl diff`, `kubectl apply`). A `kubectl diff` szerint csak a Deployment init container parancsa változott:
+
+```
+-        - chown -R 100:101 /data && chmod 0750 /data && ls -ldn /data
++        - chown 100:101 /data && chmod 0750 /data && ls -ldn /data
+deployment.apps/podinfo configured
+deployment "podinfo" successfully rolled out
+drwxr-x---    2 100      101           4096 Nov 20 10:38 /data
+```
+
+ Az alkalmazás után létrejött egy új ReplicaSet (`podinfo-7486c4bcb7`), a régi 0-ra skálázódott, az új Pod (`podinfo-7486c4bcb7-k62nx`) pedig elindult.
 
 **2. kísérlet – PASS.** Megismételtem a teljes T04 ellenőrzést, vagyis pontosan azt a helyzetet, ami először elbukott:
 
@@ -153,7 +233,16 @@ A PV reclaim policyjét `Delete`-ről `Retain`-re állítottam (`T03-pv-retain.t
 | Előtte (`T04-before.txt`) | `podinfo-7486c4bcb7-k62nx` | `eb604e01-7e84-4235-b476-904883d6760a` | 10.244.0.9 | `stefanprodan/podinfo:6.14.1` | `344730ef-…` |
 | Utána (`T04-after.txt`) | `podinfo-7486c4bcb7-p8xnk` | `4fe4a2e9-f0a7-458d-b815-cb800c214506` | 10.244.0.10 | `stefanprodan/podinfo:6.14.1` | `344730ef-…` |
 
-A Pod új nevet, UID-t és IP-t kapott; az image és a PVC ugyanaz maradt. A törlés és az új Pod elkészülése sikeres volt (`T04-replace.txt`, második bejegyzés: `condition met`, `exit code: 0`). A visszaolvasott 71 bájt `cmp` szerint azonos az eredetivel, a SHA-256 is egyezik (`T04-store-get.txt`: `MATCH`).
+A Pod új nevet, UID-t és IP-t kapott; az image és a PVC ugyanaz maradt. A törlés és az új Pod elkészülése sikeres volt (`T04-replace.txt`, második bejegyzés: `condition met`, `exit code: 0`). A visszaolvasott 71 bájt `cmp` szerint azonos az eredetivel, a SHA-256 is egyezik (`T04-store-get.txt`):
+
+```
+pod "podinfo-7486c4bcb7-k62nx" deleted from mst namespace
+pod/podinfo-7486c4bcb7-p8xnk condition met
+HTTP 202, 71 bytes
+MATCH: Pod-csere utan is bajtrol bajtra egyezik
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  evidence/T03-expected-record.txt
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  evidence/T04-readback.bin
+```
 
 ## 6. Verziófrissítés (T05, T06)
 
@@ -166,13 +255,42 @@ A Pod új nevet, UID-t és IP-t kapott; az image és a PVC ugyanaz maradt. A tö
 | ReplicaSet | `podinfo-7486c4bcb7` (1 Pod) | `podinfo-6c784dc597` (1 Pod); a régiek 0 Poddal megmaradtak |
 | PVC UID | `344730ef-eaeb-4a80-a163-74d1bd41256e` | `344730ef-eaeb-4a80-a163-74d1bd41256e` (változatlan) |
 
-**A módosítás:** a `deployment/deployment.yaml` egyetlen sora, `image: stefanprodan/podinfo:6.14.1` → `6.17.0` (`T05-config-diff.txt`, git commit `7d4602a`). Mást nem változtattam.
+**A módosítás:** a `deployment/deployment.yaml` egyetlen sora, `image: stefanprodan/podinfo:6.14.1` → `6.17.0` (`T05-config-diff.txt`). Mást nem változtattam.
 
-**Ellenőrzés alkalmazás előtt:** a `kubectl diff -k deployment/` csak a Deployment `image` sorát (és a `generation` számlálót) mutatta; a PVC, a Service és a Namespace nem szerepelt benne (`T05-kubectl-diff.txt`). Ebből előre látszott, hogy a frissítés a tárolóhoz nem nyúl.
+**Ellenőrzés alkalmazás előtt:** a `kubectl diff -k deployment/` csak a Deployment `image` sorát (és a `generation` számlálót) mutatta; a PVC, a Service és a Namespace nem szerepelt benne (`T05-kubectl-diff.txt`). Ebből előre látszott, hogy a frissítés a tárolóhoz nem nyúl:
 
-**Frissítés:** `kubectl apply -k deployment/` és `kubectl -n mst rollout status deploy/podinfo`. Eredmény: `deployment.apps/podinfo configured`, a többi erőforrás `unchanged`, majd `successfully rolled out` (`T05-apply.txt`). A `Recreate` stratégia miatt a régi Pod előbb leállt, és csak utána indult el az új. A `rollout history` három revíziót mutat: az eredeti telepítést, az init container javítását és a verziófrissítést.
+```
+-  generation: 2
++  generation: 3
+-        image: stefanprodan/podinfo:6.14.1
++        image: stefanprodan/podinfo:6.17.0
+```
 
-**Az eredeti rekord a frissítés után (T06):** ugyanazzal a hash-sel visszaolvasva a tartalom `cmp` szerint azonos a T03-ban elmentett bájtokkal, és a SHA-256 is egyezik (`T06-store-get.txt`: `MATCH`, `exit code: 0`). A rekordot nem hoztam létre újra. A frissítés utáni ismételt `apply` is 4× `unchanged` és üres diff lett (`T06-apply-again-idempotent.txt`).
+**Frissítés:** `kubectl apply -k deployment/` és `kubectl -n mst rollout status deploy/podinfo`. Eredmény: `deployment.apps/podinfo configured`, a többi erőforrás `unchanged`, majd `successfully rolled out` (`T05-apply.txt`). A `Recreate` stratégia miatt a régi Pod előbb leállt, és csak utána indult el az új. Kivonat (`T05-apply.txt`, `T05-after-image.txt`):
+
+```
+namespace/mst unchanged
+service/podinfo unchanged
+persistentvolumeclaim/podinfo-data unchanged
+deployment.apps/podinfo configured
+deployment "podinfo" successfully rolled out
+running image: docker.io/stefanprodan/podinfo:6.17.0
+imageID: docker.io/stefanprodan/podinfo@sha256:fa2f27c1a8561097e5144bfc0853eba6054d743b68b03de4cad4675616ddefb0
+PVC UID: 344730ef-eaeb-4a80-a163-74d1bd41256e
+```
+
+A `rollout history` három revíziót mutat: az eredeti telepítést, az init container javítását és a verziófrissítést.
+
+**Az eredeti rekord a frissítés után (T06):** ugyanazzal a hash-sel visszaolvasva a tartalom `cmp` szerint azonos a T03-ban elmentett bájtokkal, és a SHA-256 is egyezik (`T06-store-get.txt`: `MATCH`, `exit code: 0`). A rekordot nem hoztam létre újra.
+
+```
+HTTP 202, 71 bytes
+MATCH: frissites utan is bajtrol bajtra egyezik
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  evidence/T03-expected-record.txt
+2df87d1b5cb3829ca3e40ca3f1fae0508df1ac124ec5ea9c8a4ead866f940ad5  evidence/T06-readback.bin
+```
+
+A frissítés utáni ismételt `apply` is 4× `unchanged` és üres diff lett (`T06-apply-again-idempotent.txt`).
 
 ## 7. Haladó műveletek
 
