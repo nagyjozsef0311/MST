@@ -59,6 +59,16 @@ Ha valamit újrafuttatsz, a régi kimenet megmarad. Ez szándékos: a kiírás k
 
 Minden új terminálban újra futtasd a `source scripts/ev.sh` parancsot.
 
+### Kell-e képernyőkép?
+
+**Nem kötelező.** A kiírás szerint „képernyőképek készítése opcionális”, és a képernyőkép önmagában nem ér pontot. A fő bizonyíték az `ev` által mentett szöveges kimenet, mert az kereshető, másolható és pontos.
+
+Ha mégis szeretnél, legfeljebb 2–3 darabot készíts, és tedd az `evidence/screenshots/` mappába:
+- `T05-ui-6.14.1.png`: a podinfo webes felülete (`http://127.0.0.1:9898/` böngészőben) a frissítés **előtt**, a verziószámmal
+- `T05-ui-6.17.0.png`: ugyanez a frissítés **után**
+
+Ubuntun a `PrtSc` billentyűvel készíthetsz képernyőképet; a kép a `~/Képek/Képernyőképek` vagy a `~/Pictures/Screenshots` mappába kerül.
+
 **Szabályok, amelyeket végig tarts be:**
 1. Soha ne hozd létre újra a tesztrekordot a Pod lecserélése vagy a frissítés után: azzal semmit nem bizonyítanál.
 2. Soha ne töröld a PVC-t, és a tesztek alatt ne futtass `kubectl delete -k` vagy `kind delete cluster` parancsot.
