@@ -1,19 +1,12 @@
 # shellcheck shell=bash
-# Bizonyítékrögzítő segédfüggvény. Betöltés (a repó gyökeréből):
+# Parancskimenet rögzítése az evidence/ mappába.
 #
-#   source scripts/ev.sh
+# Betöltés a projekt gyökeréből:  source scripts/ev.sh
+# Használat:                      ev <fájlnév> '<parancs>'
+# Példa:                          ev T01-readyz.txt 'curl -sS -i http://127.0.0.1:9898/readyz'
 #
-# Használat:
-#
-#   ev T01-readyz.txt 'curl -sS -i http://127.0.0.1:9898/readyz'
-#
-# Mit csinál: az evidence/<fájl> VÉGÉRE írja (nem írja felül!) az időbélyeget,
-# a pontos parancsot, a parancs teljes kimenetét (stdout + stderr) és a
-# kilépési kódot, közben a képernyőre is kiírja.
-#
-# A parancsot egyetlen, aposztrófok közé tett szövegként add meg; így a
-# csövek (|) és átirányítások (>) is a rögzített parancs részei maradnak.
-# A shell változókat (pl. $HASH) `export`-tal tedd elérhetővé.
+# Az evidence/<fájlnév> végére írja (nem írja felül) az időpontot, a parancsot,
+# a teljes kimenetet (stdout + stderr) és a kilépési kódot.
 
 ev() {
   if [ "$#" -lt 2 ]; then
@@ -23,8 +16,11 @@ ev() {
   local root file
   root="$(git rev-parse --show-toplevel 2>/dev/null)"
   if [ -z "$root" ] || [ ! -f "$root/deployment/kustomization.yaml" ]; then
-    echo "HIBA: nem az MST repóban vagy (most: $PWD). Futtasd: cd ~/MST" >&2
-    return 2
+    root="$(pwd)"
+    if [ ! -f "$root/deployment/kustomization.yaml" ]; then
+      echo "HIBA: a projekt gyökeréből futtasd (ahol a deployment/ mappa van)" >&2
+      return 2
+    fi
   fi
   file="$1"
   shift

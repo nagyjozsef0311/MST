@@ -1,10 +1,3 @@
-# Belső (ClusterIP) Service: stabil név és virtuális IP a podinfo Pod elé.
-#
-# - Clusteren belül:  http://podinfo:9898  (ugyanabban a névtérben)
-#                     http://podinfo.mst.svc.cluster.local:9898  (teljes név)
-# - Clusteren kívülről NEM érhető el (nincs NodePort / LoadBalancer).
-# - A hostról: kubectl -n mst port-forward svc/podinfo 9898:9898
-#   (ez alapból csak a 127.0.0.1 címre köt).
 apiVersion: v1
 kind: Service
 metadata:

@@ -1,14 +1,3 @@
-# Tartós tároló igénylése (PersistentVolumeClaim).
-#
-# - storageClassName nincs megadva -> a cluster alapértelmezett StorageClass-a
-#   jön létre (kind esetén: "standard", rancher local-path provisioner).
-# - A "standard" StorageClass WaitForFirstConsumer módú: a PVC addig Pending,
-#   amíg egy Pod nem hivatkozik rá. Ez normális, nem hiba.
-# - ReadWriteOnce: egyszerre egy node csatolhatja írhatóan. Ezért a Deployment
-#   "Recreate" stratégiát használ (lásd deployment.yaml).
-# - FONTOS: a PVC életciklusa független a Podétól. Pod törlése, Deployment
-#   frissítése NEM törli. A PVC törlése viszont (pl. `kubectl delete -k`)
-#   a "Delete" reclaim policy miatt az adatot is törli!
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

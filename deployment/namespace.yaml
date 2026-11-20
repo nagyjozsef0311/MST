@@ -1,6 +1,3 @@
-# Külön névtér a feladat erőforrásainak: elkülöníti őket a cluster
-# rendszerkomponenseitől (kube-system stb.), és a Service DNS nevében is
-# megjelenik: podinfo.mst.svc.cluster.local
 apiVersion: v1
 kind: Namespace
 metadata:
