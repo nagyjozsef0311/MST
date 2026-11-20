@@ -1,0 +1,5 @@
+### 2026-11-20T11:20:35+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst logs deploy/podinfo -c fix-data-permissions
+drwxr-x---    2 100      101           4096 Nov 20 10:18 /data
+[exit code: 0]
+

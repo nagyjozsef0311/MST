@@ -1,0 +1,38 @@
+### 2026-11-20T11:26:03+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst run netcheck --rm -i --restart=Never --image=curlimages/curl:8.17.0 -- sh -c "nslookup podinfo.mst.svc.cluster.local || true; curl -sS -i http://podinfo:9898/readyz"
+Server:		10.96.0.10
+Address:	10.96.0.10:53
+
+
+Name:	podinfo.mst.svc.cluster.local
+Address: 10.96.225.68
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+X-Content-Type-Options: nosniff
+Date: Fri, 20 Nov 2026 10:26:07 GMT
+Content-Length: 20
+
+{
+  "status": "OK"
+}All commands and output from this session will be recorded in container logs, including credentials and sensitive information passed through the command prompt.
+If you don't see a command prompt, try pressing enter.
+warning: couldn't attach to pod/netcheck, falling back to streaming logs: Internal error occurred: Internal error occurred: error attaching to container: failed to load task: no running task found: task c7c636d11e9d86dd115ff88761a772ffbe039a4bf85d9663b2d656384bcec19f not found
+Server:		10.96.0.10
+Address:	10.96.0.10:53
+
+
+Name:	podinfo.mst.svc.cluster.local
+Address: 10.96.225.68
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+X-Content-Type-Options: nosniff
+Date: Fri, 20 Nov 2026 10:26:07 GMT
+Content-Length: 20
+
+{
+  "status": "OK"
+}pod "netcheck" deleted from mst namespace
+[exit code: 0]
+

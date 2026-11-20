@@ -1,0 +1,15 @@
+### 2026-11-20T11:16:39+01:00  (host: jozsef-nagy-nb02)
+$ kubectl cluster-info; kubectl version; kubectl get nodes -o wide; kubectl get storageclass
+Kubernetes control plane is running at https://127.0.0.1:37085
+CoreDNS is running at https://127.0.0.1:37085/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+Client Version: v1.37.2
+Kustomize Version: v5.8.1
+Server Version: v1.37.0
+NAME                STATUS   ROLES           AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+mst-control-plane   Ready    control-plane   7m7s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   7.0.0-43-generic (amd64)   containerd://2.3.4
+NAME                 PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+standard (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  7m4s
+[exit code: 0]
+

@@ -1,0 +1,15 @@
+### 2026-11-20T10:50:30+01:00  (host: jozsef-nagy-nb02)
+$ uname -a; cat /etc/os-release | head -4; nproc; free -h; df -h /
+Linux jozsef-nagy-nb02 7.0.0-43-generic #43-Ubuntu SMP PREEMPT_DYNAMIC Fri Oct 23 13:25:25 UTC 2026 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 26.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="26.04"
+VERSION="26.04.1 LTS (Resolute Raccoon)"
+14
+               total        used        free      shared  buff/cache   available
+Mem:            30Gi       3.2Gi        25Gi       590Mi       2.5Gi        26Gi
+Swap:          8.0Gi          0B       8.0Gi
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p2  468G  112G  332G  26% /
+[exit code: 0]
+

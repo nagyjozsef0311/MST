@@ -1,0 +1,126 @@
+### 2026-11-20T11:17:00+01:00  (host: jozsef-nagy-nb02)
+$ kubectl kustomize deployment/
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/part-of: mst-project
+  name: mst
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: podinfo
+  name: podinfo
+  namespace: mst
+spec:
+  ports:
+  - name: http
+    port: 9898
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: podinfo
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: podinfo
+  name: podinfo-data
+  namespace: mst
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: podinfo
+  name: podinfo
+  namespace: mst
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: podinfo
+    spec:
+      containers:
+      - args:
+        - --port=9898
+        - --data-path=/data
+        - --level=info
+        command:
+        - ./podinfo
+        image: stefanprodan/podinfo:6.14.1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 10
+        name: podinfo
+        ports:
+        - containerPort: 9898
+          name: http
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 100
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - chown -R 100:101 /data && chmod 0750 /data && ls -ldn /data
+        image: busybox:1.37.0
+        name: fix-data-permissions
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - CHOWN
+            - FOWNER
+            drop:
+            - ALL
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: podinfo-data
+[exit code: 0]
+

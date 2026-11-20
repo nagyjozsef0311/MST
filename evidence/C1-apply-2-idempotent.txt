@@ -1,0 +1,9 @@
+### 2026-11-20T11:21:20+01:00  (host: jozsef-nagy-nb02)
+$ kubectl apply -k deployment/; kubectl diff -k deployment/ && echo "NINCS ELTERES"
+namespace/mst unchanged
+service/podinfo unchanged
+persistentvolumeclaim/podinfo-data unchanged
+deployment.apps/podinfo unchanged
+NINCS ELTERES
+[exit code: 0]
+

@@ -1,0 +1,5 @@
+### 2026-11-20T11:18:47+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst rollout status deploy/podinfo --timeout=180s
+deployment "podinfo" successfully rolled out
+[exit code: 0]
+

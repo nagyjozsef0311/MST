@@ -1,0 +1,20 @@
+### 2026-11-20T11:19:24+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst get all,pvc -o wide; kubectl get pv
+NAME                           READY   STATUS    RESTARTS   AGE   IP           NODE                NOMINATED NODE   READINESS GATES
+pod/podinfo-59f7587cbd-t9sb4   1/1     Running   0          50s   10.244.0.6   mst-control-plane   <none>           <none>
+
+NAME              TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE   SELECTOR
+service/podinfo   ClusterIP   10.96.225.68   <none>        9898/TCP   50s   app.kubernetes.io/name=podinfo
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                        SELECTOR
+deployment.apps/podinfo   1/1     1            1           50s   podinfo      stefanprodan/podinfo:6.14.1   app.kubernetes.io/name=podinfo
+
+NAME                                 DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES                        SELECTOR
+replicaset.apps/podinfo-59f7587cbd   1         1         1       50s   podinfo      stefanprodan/podinfo:6.14.1   app.kubernetes.io/name=podinfo,pod-template-hash=59f7587cbd
+
+NAME                                 STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE   VOLUMEMODE
+persistentvolumeclaim/podinfo-data   Bound    pvc-344730ef-eaeb-4a80-a163-74d1bd41256e   1Gi        RWO            standard       <unset>                 51s   Filesystem
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-344730ef-eaeb-4a80-a163-74d1bd41256e   1Gi        RWO            Delete           Bound    mst/podinfo-data   standard       <unset>                          48s
+[exit code: 0]
+

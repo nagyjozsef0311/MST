@@ -1,0 +1,10 @@
+### 2026-11-20T11:25:14+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst get svc podinfo -o wide; kubectl -n mst get endpointslices -l kubernetes.io/service-name=podinfo -o wide; kubectl -n mst get pod -l app.kubernetes.io/name=podinfo -o wide
+NAME      TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE     SELECTOR
+podinfo   ClusterIP   10.96.225.68   <none>        9898/TCP   6m40s   app.kubernetes.io/name=podinfo
+NAME            ADDRESSTYPE   PORTS   ENDPOINTS    AGE
+podinfo-ddkvq   IPv4          9898    10.244.0.6   6m40s
+NAME                       READY   STATUS    RESTARTS   AGE     IP           NODE                NOMINATED NODE   READINESS GATES
+podinfo-59f7587cbd-t9sb4   1/1     Running   0          6m40s   10.244.0.6   mst-control-plane   <none>           <none>
+[exit code: 0]
+

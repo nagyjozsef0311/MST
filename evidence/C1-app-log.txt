@@ -1,0 +1,6 @@
+### 2026-11-20T11:20:58+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst logs deploy/podinfo -c podinfo --tail=20
+{"level":"info","ts":"2026-11-20T10:18:45.512Z","caller":"podinfo/main.go:170","msg":"Starting podinfo","version":"6.14.1","revision":"eec06d1ea459af4cb4e10e806f8be7c7bd58b361","port":"9898"}
+{"level":"info","ts":"2026-11-20T10:18:45.512Z","caller":"http/server.go:273","msg":"Starting HTTP Server.","addr":":9898"}
+[exit code: 0]
+

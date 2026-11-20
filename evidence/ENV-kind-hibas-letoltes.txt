@@ -1,0 +1,5 @@
+### 2026-11-20T11:05:54+01:00  (host: jozsef-nagy-nb02)
+$ kind create cluster --config deployment/kind-config.yaml
+/usr/local/bin/kind: line 1: Not: command not found
+[exit code: 127]
+
