@@ -100,6 +100,17 @@ drwxr-x---    2 100      101           4096 Nov 20 10:18 /data
 
 **Hogyan alkalmazható újra a konfiguráció, és hogyan hozható újra létre a container adatvesztés nélkül?** A `kubectl apply -k deployment/` bármikor újrafuttatható: mindig a fájlokban leírt állapotra hozza a clustert, és ha nincs eltérés, nem változtat semmit (`C1-apply-2-idempotent.txt`, `T06-apply-again-idempotent.txt`). Az alkalmazás Podját a `kubectl -n mst delete pod -l app.kubernetes.io/name=podinfo` paranccsal lehet újra létrehozni. A Deployment (pontosabban a ReplicaSet) ilyenkor magától új Podot indít, amely ugyanazt a `podinfo-data` PVC-t csatolja. A PVC egy külön Kubernetes objektum, a Pod törlése nem érinti.
 
+**A beadás előtti ellenőrzés: a README reprodukálhatósága.** Miután a YAML fájlokból kivettem a kommenteket, a futó clusteren a `kubectl diff -k deployment/` üres maradt (`C1-comment-cleanup.txt`), vagyis a kommentek törlése a konfigurációt nem változtatta meg. Ezután a README lépéseit szó szerint követve egy második, eldobható clusteren (`mst2`) a teljes életciklust megismételtem (`C1-readme-repro.txt`):
+
+- telepítés 6.14.1-gyel, a PVC `Bound` lett;
+- `/readyz` 200, a kliens Pod elérte a Service-t;
+- rekordírás: ugyanaz a hash (`b8e715ae…`), visszaolvasás `MATCH`;
+- Pod-csere (UID `dd56d416…` → `42ccf9b1…`), `MATCH`;
+- frissítés 6.17.0-ra, ugyanazzal a digesttel (`fa2f27c1…`), `MATCH`;
+- ismételt apply: `unchanged`, üres diff, és a `deployment.yaml` a végén ugyanaz volt, mint a kiinduló állapotban (üres `git diff`).
+
+Ezután a `mst2` clustert töröltem. Az eredeti `mst` clusterben a Pod (`podinfo-6c784dc597-74dvc`) és a PVC (`344730ef-…`, `Bound`) változatlanul megmaradt. Megfigyeltem, hogy közvetlenül a cluster létrehozása után a node néhány másodpercig `NotReady` állapotú volt; ez a telepítést nem zavarta, és a README-be is beírtam.
+
 **Hogyan választható ki a verzió új telepítéshez?** A verziót kizárólag a `deployment/deployment.yaml` `image:` sora határozza meg; a beadott állapotban ez `6.17.0`. Új telepítés ezzel a verzióval a README 1–3. lépésével történik. Ha valaki az eredeti `6.14.1`-gyel akar kezdeni, az első telepítés előtt visszaírja a taget (README 2. lépés). Ezt **csak új clusterben, üres PVC-vel** szabad megtenni. Olyan tárolóra, amelyet a 6.17.0 már használt, nem indítok régebbi verziót, mert a régebbi alkalmazás nem feltétlenül kezeli helyesen az újabb által írt adatot. A git historyban mindkét állapot megvan: `dc7a03e` (6.14.1) és `7d4602a` (6.17.0).
 
 ## 5. Adatmegőrzés (T03, T04)
@@ -188,7 +199,7 @@ Not attempted. A T07–T10 ellenőrzéseket (Valkey cache, hiba és helyreállá
 
 ### 9.1 Mi működött
 
-A Kubernetes a leírt állapotot tartotta fenn. Amikor töröltem a Podot, a controller automatikusan újat indított. A tartós adat a PVC-ben volt, ezért a Pod cseréje és a verziófrissítés nem érintette. Az eredeti 71 bájtos rekord minden lépés után bájtra azonos maradt, és a PVC azonosítója az egész feladat alatt `344730ef-…` volt. A frissítéshez elég volt egyetlen sort átírni a konfigurációban. A `kubectl diff` alkalmazás előtt megmutatta, mi fog változni, és a konfiguráció ismételt alkalmazása nem okozott változást.
+A Kubernetes a leírt állapotot tartotta fenn. Amikor töröltem a Podot, a controller automatikusan újat indított. A tartós adat a PVC-ben volt, ezért a Pod cseréje és a verziófrissítés nem érintette. Az eredeti 71 bájtos rekord minden lépés után bájtra azonos maradt, és a PVC azonosítója az egész feladat alatt `344730ef-…` volt. A frissítéshez elég volt egyetlen sort átírni a konfigurációban. A README lépései egy második, új clusteren is hiba nélkül végigvitték a teljes folyamatot. A `kubectl diff` alkalmazás előtt megmutatta, mi fog változni, és a konfiguráció ismételt alkalmazása nem okozott változást.
 
 ### 9.2 Felmerült problémák és megoldásuk
 
@@ -204,7 +215,7 @@ A Kubernetes a leírt állapotot tartotta fenn. Amikor töröltem a Podot, a con
 3. **Kisebb, saját hibák és megfigyelések:**
    - A `T03-node-path.txt` első bejegyzésében véletlenül benne hagytam egy helyőrzőt (`<UTVONAL>`) a valódi útvonal helyett. Ez szintaxishibát adott; a második bejegyzés a helyes parancs.
    - A `C2-incluster-client.txt`-ben a kimenet kétszer szerepel, és van benne egy `couldn't attach to pod` figyelmeztetés. A kliens Pod hamarabb végzett, mint ahogy a kubectl rácsatlakozott, ezért a kubectl a Pod logjából írta ki újra ugyanazt. Ez nem befolyásolja az eredményt.
-   - A port-forward egy konkrét Podhoz kapcsolódik, ezért minden Pod-csere és frissítés után újra kellett indítanom.
+   - A port-forward egy konkrét Podhoz kapcsolódik, ezért minden Pod-csere és frissítés után újra kellett indítanom. A reprodukciós teszt végén egyszer el is felejtettem: az eredeti clusterre visszaváltás után a két első visszaolvasási kísérlet `Failed to connect` hibát adott (`C1-readme-repro.txt` vége), mert nem futott port-forward.
    - Az eseménynaplóban (`T04-debug.txt`) az indulás pillanatában látszik egy-egy sikertelen readiness ellenőrzés (`connection refused`), leálláskor pedig egy `503`. Ez normális: az alkalmazás még nem, illetve már nem fogadott kéréseket, és a Kubernetes ilyenkor nem küld forgalmat a Podra.
 
 ### 9.3 Korlátok

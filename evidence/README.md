@@ -33,3 +33,5 @@ Minden `.txt` fájl a `scripts/ev.sh` `ev` függvényével készült. Minden bej
 | `T05-after-version.txt`, `T05-after-image.txt` | T05 | az új verzió, image, digest, ReplicaSetek, rollout history |
 | `T06-store-get.txt`, `T06-readback.bin` | T06 | visszaolvasás a frissítés után, `cmp` |
 | `T06-apply-again-idempotent.txt` | T06, C1 | ismételt apply a frissítés után |
+| `C1-comment-cleanup.txt` | C1 | a YAML-kommentek törlése után a `kubectl diff` üres |
+| `C1-readme-repro.txt` | C1 | a README lépéseinek teljes megismétlése egy második (`mst2`) clusteren |

@@ -69,7 +69,7 @@ kind create cluster --config deployment/kind-config.yaml
 
 Ez egy `mst` nevű, egy node-os clustert hoz létre (a node egy `mst-control-plane` nevű Docker container), és a `kubectl`-t erre állítja (kontextus: `kind-mst`). Ha már van `mst` nevű cluster, más nevet is adhatsz: `--name mst2`. Ekkor a kontextus `kind-mst2` lesz.
 
-Ellenőrzés (a node `Ready`, és van `standard (default)` StorageClass):
+Ellenőrzés (a node `Ready`, és van `standard (default)` StorageClass). Közvetlenül a létrehozás után a node néhány másodpercig `NotReady` lehet; ez normális, a telepítés ettől függetlenül folytatható:
 
 ```bash
 kubectl get nodes && kubectl get storageclass
