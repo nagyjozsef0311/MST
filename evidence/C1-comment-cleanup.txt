@@ -1,0 +1,5 @@
+### 2026-11-20T12:27:48+01:00  (host: jozsef-nagy-nb02)
+$ kubectl diff -k deployment/ && echo "NINCS ELTERES"
+NINCS ELTERES
+[exit code: 0]
+
