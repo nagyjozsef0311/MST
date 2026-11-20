@@ -1,0 +1,25 @@
+### 2026-11-20T12:01:42+01:00  (host: jozsef-nagy-nb02)
+$ kubectl diff -k deployment/
+diff -u -N /tmp/LIVE-723115455/apps.v1.Deployment.mst.podinfo /tmp/MERGED-3453015189/apps.v1.Deployment.mst.podinfo
+--- /tmp/LIVE-723115455/apps.v1.Deployment.mst.podinfo	2026-11-20 12:01:42.982997713 +0100
++++ /tmp/MERGED-3453015189/apps.v1.Deployment.mst.podinfo	2026-11-20 12:01:42.982997713 +0100
+@@ -6,7 +6,7 @@
+     kubectl.kubernetes.io/last-applied-configuration: |
+       {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"podinfo"},"name":"podinfo","namespace":"mst"},"spec":{"replicas":1,"selector":{"matchLabels":{"app.kubernetes.io/name":"podinfo"}},"strategy":{"type":"Recreate"},"template":{"metadata":{"labels":{"app.kubernetes.io/name":"podinfo"}},"spec":{"containers":[{"args":["--port=9898","--data-path=/data","--level=info"],"command":["./podinfo"],"image":"stefanprodan/podinfo:6.14.1","imagePullPolicy":"IfNotPresent","livenessProbe":{"httpGet":{"path":"/healthz","port":"http"},"periodSeconds":10},"name":"podinfo","ports":[{"containerPort":9898,"name":"http","protocol":"TCP"}],"readinessProbe":{"httpGet":{"path":"/readyz","port":"http"},"periodSeconds":5},"resources":{"limits":{"memory":"128Mi"},"requests":{"cpu":"10m","memory":"32Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsGroup":101,"runAsNonRoot":true,"runAsUser":100},"volumeMounts":[{"mountPath":"/data","name":"data"}]}],"initContainers":[{"command":["sh","-c","chown 100:101 /data \u0026\u0026 chmod 0750 /data \u0026\u0026 ls -ldn /data"],"image":"busybox:1.37.0","name":"fix-data-permissions","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"add":["CHOWN","FOWNER"],"drop":["ALL"]},"runAsNonRoot":false,"runAsUser":0},"volumeMounts":[{"mountPath":"/data","name":"data"}]}],"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"podinfo-data"}}]}}}}
+   creationTimestamp: "2026-11-20T10:18:34Z"
+-  generation: 2
++  generation: 3
+   labels:
+     app.kubernetes.io/name: podinfo
+   name: podinfo
+@@ -34,7 +34,7 @@
+         - --level=info
+         command:
+         - ./podinfo
+-        image: stefanprodan/podinfo:6.14.1
++        image: stefanprodan/podinfo:6.17.0
+         imagePullPolicy: IfNotPresent
+         livenessProbe:
+           failureThreshold: 3
+[exit code: 1]
+

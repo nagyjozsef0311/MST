@@ -51,7 +51,7 @@ spec:
       containers:
         - name: podinfo
           ### IMAGE ### – rögzített verziótag, soha nem "latest"
-          image: stefanprodan/podinfo:6.14.1
+          image: stefanprodan/podinfo:6.17.0
           imagePullPolicy: IfNotPresent
           # Az image CMD-je "./podinfo" (munkakönyvtár: /home/app). Ha csak
           # `args`-t adnánk meg, az felülírná a CMD-t, ezért a command is kell.

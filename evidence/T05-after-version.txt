@@ -1,0 +1,13 @@
+### 2026-11-20T12:02:27+01:00  (host: jozsef-nagy-nb02)
+$ curl -sS -i http://127.0.0.1:9898/version
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+X-Content-Type-Options: nosniff
+Date: Fri, 20 Nov 2026 11:02:27 GMT
+Content-Length: 81
+
+{
+  "commit": "fd3a834ed8d14b80ea334cf8a2fddd4597924da6",
+  "version": "6.17.0"
+}[exit code: 0]
+

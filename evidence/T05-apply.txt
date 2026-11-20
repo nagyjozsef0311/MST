@@ -1,0 +1,13 @@
+### 2026-11-20T12:02:04+01:00  (host: jozsef-nagy-nb02)
+$ kubectl apply -k deployment/ && kubectl -n mst rollout status deploy/podinfo --timeout=180s
+namespace/mst unchanged
+service/podinfo unchanged
+persistentvolumeclaim/podinfo-data unchanged
+deployment.apps/podinfo configured
+Waiting for deployment "podinfo" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "podinfo" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "podinfo" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "podinfo" rollout to finish: 0 of 1 updated replicas are available...
+deployment "podinfo" successfully rolled out
+[exit code: 0]
+

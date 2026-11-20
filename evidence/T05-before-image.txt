@@ -1,0 +1,12 @@
+### 2026-11-20T12:00:25+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst get deploy podinfo -o jsonpath="spec image: {.spec.template.spec.containers[0].image}{\"\\n\"}"; kubectl -n mst get pod -l app.kubernetes.io/name=podinfo -o jsonpath="{range .items[*]}pod: {.metadata.name} uid: {.metadata.uid}{\"\\n\"}running image: {.status.containerStatuses[0].image}{\"\\n\"}imageID: {.status.containerStatuses[0].imageID}{\"\\n\"}{end}"; kubectl -n mst get pvc podinfo-data -o jsonpath="PVC UID: {.metadata.uid}{\"\\n\"}"; kubectl -n mst get rs -o wide
+spec image: stefanprodan/podinfo:6.14.1
+pod: podinfo-7486c4bcb7-p8xnk uid: 4fe4a2e9-f0a7-458d-b815-cb800c214506
+running image: docker.io/stefanprodan/podinfo:6.14.1
+imageID: docker.io/stefanprodan/podinfo@sha256:f9537f729129d339aaef049b76ab2cd4ff06a424f99e5f6a5923c10621018fb1
+PVC UID: 344730ef-eaeb-4a80-a163-74d1bd41256e
+NAME                 DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES                        SELECTOR
+podinfo-59f7587cbd   0         0         0       41m     podinfo      stefanprodan/podinfo:6.14.1   app.kubernetes.io/name=podinfo,pod-template-hash=59f7587cbd
+podinfo-7486c4bcb7   1         1         1       6m28s   podinfo      stefanprodan/podinfo:6.14.1   app.kubernetes.io/name=podinfo,pod-template-hash=7486c4bcb7
+[exit code: 0]
+
