@@ -86,7 +86,7 @@ Az alkalmazás verzióját **egyetlen sor** határozza meg: a `deployment/deploy
   sed -i 's#stefanprodan/podinfo:6.17.0#stefanprodan/podinfo:6.14.1#' deployment/deployment.yaml && grep -n 'podinfo:' deployment/deployment.yaml
   ```
 
-> ⚠️ A 6.14.1-et **csak friss clusterbe, üres PVC-vel** szabad telepíteni. Olyan PVC-re, amelyet már a 6.17.0 használt, nem indítunk régebbi verziót (downgrade), mert a régebbi verzió nem feltétlenül kezeli helyesen az újabb által írt adatot.
+> **Figyelem:** a 6.14.1-et **csak friss clusterbe, üres PVC-vel** szabad telepíteni. Olyan PVC-re, amelyet már a 6.17.0 használt, nem indítunk régebbi verziót (downgrade), mert a régebbi verzió nem feltétlenül kezeli helyesen az újabb által írt adatot.
 
 ## 3. Telepítés
 
@@ -246,7 +246,7 @@ ev T01-T02-readyz.txt 'curl -sS -i http://127.0.0.1:9898/readyz'
 
 ## 10. Leállítás és takarítás
 
-> ⚠️ A `kubectl delete -k deployment/` a PVC-t is törli. A tesztek alatt ne használd.
+> **Figyelem:** a `kubectl delete -k deployment/` a PVC-t is törli. A tesztek alatt ne használd.
 
 Csak az alkalmazás leállítása, a tárolt adat megtartásával. Később a 3. lépéssel újraindítható, és ugyanazt a PVC-t kapja vissza:
 
