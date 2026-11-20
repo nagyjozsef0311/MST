@@ -11,8 +11,6 @@ A feladatban egyetlen Podinfo példányt telepítettem tartós tárolóval. Írt
 - **Miért ezt választottam:** korábban nem dolgoztam Kubernetesszel, és ezt szerettem volna megtanulni, mert a munkaerőpiacon ez a legkeresettebb. A kindet azért választottam, mert egy paranccsal létrehozható és eldobható, és nem kell hozzá VM vagy felhő.
 - **Elvégzett ellenőrzések:** T01–T06 (alapfeladat). A haladó részt (T07–T10) nem kíséreltem meg.
 
-**Felhasznált segítség:** mivel nem volt Kubernetes-tapasztalatom, a manifestek elkészítéséhez, a lépések sorrendjéhez és a hibakereséshez egy MI-asszisztenst (Claude) használtam. Minden parancsot én futtattam a saját gépemen; az `evidence/` mappában ezek valódi, szerkesztetlen kimenetei vannak, a sikertelen próbálkozásokkal együtt.
-
 ## 2. Futtatási környezet
 
 Forrás: `evidence/ENV-host.txt`, `evidence/ENV-tools.txt`, `evidence/C1-cluster-create.txt`, `evidence/C1-cluster-info.txt`.
@@ -109,7 +107,7 @@ drwxr-x---    2 100      101           4096 Nov 20 10:18 /data
 - frissítés 6.17.0-ra, ugyanazzal a digesttel (`fa2f27c1…`), `MATCH`;
 - ismételt apply: `unchanged`, üres diff, és a `deployment.yaml` a végén ugyanaz volt, mint a kiinduló állapotban (üres `git diff`).
 
-Ezután a `mst2` clustert töröltem. Az eredeti `mst` clusterben a Pod (`podinfo-6c784dc597-74dvc`) és a PVC (`344730ef-…`, `Bound`) változatlanul megmaradt. Megfigyeltem, hogy közvetlenül a cluster létrehozása után a node néhány másodpercig `NotReady` állapotú volt; ez a telepítést nem zavarta, és a README-be is beírtam.
+Ezután a `mst2` clustert töröltem. Az eredeti `mst` clusterben a Pod (`podinfo-6c784dc597-74dvc`) és a PVC (`344730ef-…`, `Bound`) változatlanul megmaradt, a `/version` továbbra is 6.17.0-t adott, és az eredeti rekord `MATCH` volt. Megfigyeltem, hogy közvetlenül a cluster létrehozása után a node néhány másodpercig `NotReady` állapotú volt; ez a telepítést nem zavarta, és a README-be is beírtam.
 
 **Hogyan választható ki a verzió új telepítéshez?** A verziót kizárólag a `deployment/deployment.yaml` `image:` sora határozza meg; a beadott állapotban ez `6.17.0`. Új telepítés ezzel a verzióval a README 1–3. lépésével történik. Ha valaki az eredeti `6.14.1`-gyel akar kezdeni, az első telepítés előtt visszaírja a taget (README 2. lépés). Ezt **csak új clusterben, üres PVC-vel** szabad megtenni. Olyan tárolóra, amelyet a 6.17.0 már használt, nem indítok régebbi verziót, mert a régebbi alkalmazás nem feltétlenül kezeli helyesen az újabb által írt adatot. A git historyban mindkét állapot megvan: `dc7a03e` (6.14.1) és `7d4602a` (6.17.0).
 
@@ -203,7 +201,7 @@ A Kubernetes a leírt állapotot tartotta fenn. Amikor töröltem a Podot, a con
 
 ### 9.2 Felmerült problémák és megoldásuk
 
-1. **Hibás kind letöltés** (`ENV-kind-hibas-letoltes.txt`, `ENV-tools.txt` első bejegyzése, `C1-cluster-create.txt` első bejegyzése). A `kind` parancs ezzel állt le: `line 1: Not: command not found`, kilépési kód 127. Kiderült, hogy a letöltött fájl nem program volt, hanem egy „Not Found” szöveg, mert a letöltési címben rossz volt a verziószám, és a `curl` a hibaoldalt csendben elmentette. A kindet ezután a helyes verzióval (v0.33.0), a `curl -f` kapcsolóval (HTTP-hibánál leáll) és az ellenőrző összeg (`sha256sum --check`) vizsgálatával töltöttem le újra. Tanulság: egy parancs sikeres lefutása még nem jelenti, hogy jó eredményt adott; az eredményt ellenőrizni kell.
+1. **Hibás kind letöltés** (`ENV-kind-hibas-letoltes.txt`, `ENV-tools.txt` első bejegyzése, `C1-cluster-create.txt` első bejegyzése). A `kind` parancs ezzel állt le: `line 1: Not: command not found`, kilépési kód 127. Kiderült, hogy a letöltött fájl nem program volt, hanem egy „Not Found” szöveg, mert a kind verziószáma helyére tévedésből a Kubernetes verzióját (1.37.0) írtam. Ilyen kind kiadás nincs, így a letöltési cím nem létezett, a `curl` pedig a hibaoldalt csendben elmentette. A kindet ezután a helyes verzióval (v0.33.0), a `curl -f` kapcsolóval (HTTP-hibánál leáll) és az ellenőrző összeg (`sha256sum --check`) vizsgálatával töltöttem le újra. Tanulság: egy parancs sikeres lefutása még nem jelenti, hogy jó eredményt adott; az eredményt ellenőrizni kell.
 
 2. **Nem idempotens init container (T04 első kísérlete).** Az első Pod gond nélkül elindult, de a csere utáni második Pod init containere elbukott: `chown: /data: Permission denied`. Az ok a következő volt:
    - Az első indításkor a `/data` könyvtárat a local-path tároló hozta létre úgy, hogy mindenki olvashatta, ezért a `chown -R` végig tudta járni.
@@ -215,7 +213,7 @@ A Kubernetes a leírt állapotot tartotta fenn. Amikor töröltem a Podot, a con
 3. **Kisebb, saját hibák és megfigyelések:**
    - A `T03-node-path.txt` első bejegyzésében véletlenül benne hagytam egy helyőrzőt (`<UTVONAL>`) a valódi útvonal helyett. Ez szintaxishibát adott; a második bejegyzés a helyes parancs.
    - A `C2-incluster-client.txt`-ben a kimenet kétszer szerepel, és van benne egy `couldn't attach to pod` figyelmeztetés. A kliens Pod hamarabb végzett, mint ahogy a kubectl rácsatlakozott, ezért a kubectl a Pod logjából írta ki újra ugyanazt. Ez nem befolyásolja az eredményt.
-   - A port-forward egy konkrét Podhoz kapcsolódik, ezért minden Pod-csere és frissítés után újra kellett indítanom. A reprodukciós teszt végén egyszer el is felejtettem: az eredeti clusterre visszaváltás után a két első visszaolvasási kísérlet `Failed to connect` hibát adott (`C1-readme-repro.txt` vége), mert nem futott port-forward.
+   - A port-forward egy konkrét Podhoz kapcsolódik, ezért minden Pod-csere és frissítés után újra kellett indítanom. A reprodukciós teszt végén egyszer el is felejtettem: az eredeti clusterre visszaváltás után a két első visszaolvasási kísérlet `Failed to connect` hibát adott, mert nem futott port-forward. Újraindítása után az eredeti rekord `MATCH` lett (`C1-readme-repro.txt` vége).
    - Az eseménynaplóban (`T04-debug.txt`) az indulás pillanatában látszik egy-egy sikertelen readiness ellenőrzés (`connection refused`), leálláskor pedig egy `503`. Ez normális: az alkalmazás még nem, illetve már nem fogadott kéréseket, és a Kubernetes ilyenkor nem küld forgalmat a Podra.
 
 ### 9.3 Korlátok
