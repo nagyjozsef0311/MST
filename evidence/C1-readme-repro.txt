@@ -192,3 +192,12 @@ curl: (7) Failed to connect to 127.0.0.1 port 9898 after 0 ms: Could not connect
 cmp: EOF on ‘-’ which is empty
 [exit code: 1]
 
+### 2026-11-20T12:34:33+01:00  (host: jozsef-nagy-nb02)
+$ kubectl config current-context; curl -sS http://127.0.0.1:9898/version; curl -sS http://127.0.0.1:9898/store/$(cat evidence/T03-hash.txt) | cmp - evidence/T03-expected-record.txt && echo "MATCH (eredeti mst cluster)"
+kind-mst
+{
+  "commit": "fd3a834ed8d14b80ea334cf8a2fddd4597924da6",
+  "version": "6.17.0"
+}MATCH (eredeti mst cluster)
+[exit code: 0]
+
