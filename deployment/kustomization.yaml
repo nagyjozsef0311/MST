@@ -1,0 +1,14 @@
+# Kustomize belépési pont: a kubectl beépítetten ismeri.
+#   Előnézet (semmit nem módosít):  kubectl kustomize deployment/
+#   Eltérés a futó állapottól:      kubectl diff -k deployment/
+#   Alkalmazás (idempotens):        kubectl apply -k deployment/
+#
+# A `namespace:` mező minden erőforrást az "mst" névtérbe helyez.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mst
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - service.yaml
+  - deployment.yaml

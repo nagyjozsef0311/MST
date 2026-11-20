@@ -1,0 +1,18 @@
+# kind cluster leírása – egyetlen node (control-plane), ami egyben worker is.
+#
+# Létrehozás (a repó gyökeréből):
+#   kind create cluster --config deployment/kind-config.yaml
+#
+# Megjegyzések:
+# - A kind a Kubernetes node-ot egy Docker containerként futtatja ("mst-control-plane").
+# - Az API szerver portját a kind alapból csak a 127.0.0.1 címre köti, így
+#   kívülről nem érhető el.
+# - Nem publikálunk extraPortMappings-szel alkalmazásportot: a podinfo-t
+#   `kubectl port-forward` segítségével, csak helyben (127.0.0.1) érjük el.
+# - A node image verzióját a használt kind verzió határozza meg; a ténylegesen
+#   futó Kubernetes verziót a `kubectl version` kimenete rögzíti (evidence/).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: mst
+nodes:
+  - role: control-plane

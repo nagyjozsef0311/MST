@@ -1,0 +1,10 @@
+# beadási csomag (külön készül, nem verziókezeljük)
+*.zip
+# letöltött telepítőfájlok, ha a repóban töltöd le őket
+/kind
+/kubectl
+*.sha256
+*.sha256sum
+# biztonság: kubeconfig soha ne kerüljön a repóba
+kubeconfig*
+.kube/

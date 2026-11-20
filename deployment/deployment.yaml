@@ -1,0 +1,99 @@
+# Podinfo workload: egyetlen példány, a podinfo-data PVC a /data útvonalon.
+#
+# VERZIÓVÁLASZTÁS: az alkalmazás verzióját KIZÁRÓLAG az alábbi `image:` sor
+# határozza meg (lásd "### IMAGE ###"). Frissítés = ennek a sornak a
+# módosítása + `kubectl apply -k deployment/`.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+spec:
+  replicas: 1
+  # Recreate: frissítéskor előbb leállítja a régi Podot, utána indítja az újat.
+  # Így a ReadWriteOnce PVC-t sosem akarja két Pod egyszerre használni, és két
+  # verzió sem ír egyszerre ugyanabba a könyvtárba. Ára: rövid leállás (a
+  # feladat ezt kifejezetten megengedi).
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: podinfo
+    spec:
+      # --- Előkészítő lépés: a /data könyvtár tulajdonosa legyen az app user ---
+      # A podinfo image "app" felhasználóval (UID 100, GID 101) fut, nem rootként.
+      # A local-path provisioner által létrehozott könyvtár viszont root
+      # tulajdonú lehet, és hostPath alapú köteten az fsGroup nem állít
+      # tulajdonost. Ezért egy rövid életű init container (root, de csak a
+      # CHOWN és FOWNER képességgel) beállítja a jogosultságot, majd kilép.
+      initContainers:
+        - name: fix-data-permissions
+          image: busybox:1.37.0
+          command:
+            - sh
+            - -c
+            - chown -R 100:101 /data && chmod 0750 /data && ls -ldn /data
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "FOWNER"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      containers:
+        - name: podinfo
+          ### IMAGE ### – rögzített verziótag, soha nem "latest"
+          image: stefanprodan/podinfo:6.14.1
+          imagePullPolicy: IfNotPresent
+          # Az image CMD-je "./podinfo" (munkakönyvtár: /home/app). Ha csak
+          # `args`-t adnánk meg, az felülírná a CMD-t, ezért a command is kell.
+          command: ["./podinfo"]
+          args:
+            - --port=9898
+            - --data-path=/data
+            - --level=info
+          ports:
+            - name: http
+              containerPort: 9898
+              protocol: TCP
+          # Probe-ok: a kubelet ezekből tudja, mikor kész (readiness) és mikor
+          # kell újraindítani (liveness) a containert. A Service csak "Ready"
+          # Podra küld forgalmat; a `kubectl rollout status` is erre vár.
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            runAsUser: 100
+            runAsGroup: 101
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: podinfo-data
