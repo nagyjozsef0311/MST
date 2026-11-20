@@ -76,7 +76,7 @@ echo "$HASH" > evidence/T03-hash.txt
 ev T03-store-get.txt 'curl -sS -o evidence/T03-readback.bin -w "HTTP %{http_code}, %{size_download} bytes\n" http://127.0.0.1:9898/store/$HASH && cmp testdata/record.txt evidence/T03-readback.bin && echo "MATCH: bajtrol bajtra egyezik" && sha256sum testdata/record.txt evidence/T03-readback.bin'
 ```
 
-**Mire számíts:** `HTTP 200`, `MATCH: ...`, a két `sha256sum` pedig azonos, és az `[exit code: 0]` sor zárja. Ha a `cmp` eltérést talál, kiírja, melyik bájtnál, és a kilépési kód nem 0.
+**Mire számíts:** `HTTP 202` (a podinfo olvasáskor is `202 Accepted` státuszt ad; a lényeg nem a státuszkód, hanem a `cmp` eredménye), `MATCH: ...`, a két `sha256sum` pedig azonos, és az `[exit code: 0]` sor zárja. Ha a `cmp` eltérést talál, kiírja, melyik bájtnál, és a kilépési kód nem 0.
 
 ## 3.4 A tartós tároló azonosítása
 
@@ -145,6 +145,16 @@ git add evidence/ && git commit -m "T03-T04: rekord irasa, Pod csere, adatmegorz
 - [ ] A `/store` által adott hash megegyezik a `sha1sum` értékkel
 - [ ] A `T03-store-get.txt` és a `T04-store-get.txt` is `MATCH` és `exit code: 0`
 - [ ] A `T04-before` és a `T04-after` szerint a Pod UID különböző, a PVC UID azonos
+
+## Ha az új Pod nem indul el: `Init:Error` / `chown: /data: Permission denied`
+
+Ez a manifest első változatának hibája volt. Az init container `chown -R` parancsa csak az első indításkor működött:
+
+1. **Első indulás:** a local-path által létrehozott `/data` mindenki számára olvasható, így a root rekurzívan be tud lépni.
+2. A `chmod 0750` után a `/data` tulajdonosa a 100-as UID, a többieknek nincs joga rajta.
+3. **Második indulás:** az init container rootként fut, de minden képességét eldobtuk (`drop: ALL`), csak a `CHOWN` és a `FOWNER` maradt. A `DAC_READ_SEARCH` képesség nélkül a root ugyanúgy „egyéb” felhasználó, mint bárki más, ezért nem olvashatja a könyvtár tartalmát. A `-R` bejárás ezért elakad.
+
+**Tanulság: az init lépésnek idempotensnek kell lennie**, vagyis akárhányszor fut, ugyanazt az eredményt kell adnia. Erre a javítás: `chown` `-R` nélkül. A könyvtár tulajdonosának átállításához elég a `CHOWN` képesség, a fájlokat pedig a podinfo eleve 100:101 tulajdonnal hozza létre. A `DAC_READ_SEARCH` hozzáadása is megoldaná, de az bármely fájl olvasását engedné; ezt a *legkisebb jogosultság elve* (*least privilege*) miatt elvetjük.
 
 ## Ha nem egyezik
 
