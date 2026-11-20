@@ -5,3 +5,10 @@ podinfo-59f7587cbd-t9sb4   aa4909c1-ff45-41e2-9b52-aaa73f634a0a   10.244.0.6   s
 PVC UID: 344730ef-eaeb-4a80-a163-74d1bd41256e
 [exit code: 0]
 
+### 2026-11-20T11:54:53+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst get pod -l app.kubernetes.io/name=podinfo -o custom-columns=POD:.metadata.name,UID:.metadata.uid,IP:.status.podIP,IMAGE:.spec.containers[0].image,PVC:.spec.volumes[0].persistentVolumeClaim.claimName; kubectl -n mst get pvc podinfo-data -o jsonpath="PVC UID: {.metadata.uid}{\"\\n\"}"
+POD                        UID                                    IP           IMAGE                         PVC
+podinfo-7486c4bcb7-k62nx   eb604e01-7e84-4235-b476-904883d6760a   10.244.0.9   stefanprodan/podinfo:6.14.1   podinfo-data
+PVC UID: 344730ef-eaeb-4a80-a163-74d1bd41256e
+[exit code: 0]
+

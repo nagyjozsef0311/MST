@@ -1,0 +1,7 @@
+### 2026-11-20T11:55:26+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst get pod -l app.kubernetes.io/name=podinfo -o custom-columns=POD:.metadata.name,UID:.metadata.uid,IP:.status.podIP,IMAGE:.spec.containers[0].image,PVC:.spec.volumes[0].persistentVolumeClaim.claimName; kubectl -n mst get pvc podinfo-data -o jsonpath="PVC UID: {.metadata.uid}{\"\\n\"}"
+POD                        UID                                    IP            IMAGE                         PVC
+podinfo-7486c4bcb7-p8xnk   4fe4a2e9-f0a7-458d-b815-cb800c214506   10.244.0.10   stefanprodan/podinfo:6.14.1   podinfo-data
+PVC UID: 344730ef-eaeb-4a80-a163-74d1bd41256e
+[exit code: 0]
+

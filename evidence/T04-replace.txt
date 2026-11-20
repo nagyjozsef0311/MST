@@ -4,3 +4,9 @@ pod "podinfo-59f7587cbd-t9sb4" deleted from mst namespace
 error: timed out waiting for the condition on pods/podinfo-59f7587cbd-9pv7s
 [exit code: 1]
 
+### 2026-11-20T11:55:03+01:00  (host: jozsef-nagy-nb02)
+$ kubectl -n mst delete pod -l app.kubernetes.io/name=podinfo --wait=true && kubectl -n mst wait pod -l app.kubernetes.io/name=podinfo --for=condition=Ready --timeout=180s
+pod "podinfo-7486c4bcb7-k62nx" deleted from mst namespace
+pod/podinfo-7486c4bcb7-p8xnk condition met
+[exit code: 0]
+
