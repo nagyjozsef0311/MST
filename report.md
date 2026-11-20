@@ -17,7 +17,7 @@ Forrás: `evidence/ENV-host.txt`, `evidence/ENV-tools.txt`, `evidence/C1-cluster
 
 | Elem | Érték |
 |---|---|
-| Hardver | Dell Latitude Pro 16 laptop, 14 CPU szál, 30 GiB RAM, 468 GB SSD |
+| Hardver | Dell Latitude Pro 16 laptop, 14 CPU szál, 32 GB RAM (ebből az operációs rendszer 30 GiB-ot lát), 512 GB SSD (a gyökérpartíció mérete 468 GB) |
 | Operációs rendszer | Ubuntu 26.04.1 LTS, kernel 7.0.0-43-generic, x86_64 |
 | Docker Engine | 29.10.0 (containerd v2.4.2, runc 1.5.3) |
 | kind | v0.33.0 |
@@ -69,7 +69,7 @@ A kubectl és a szerver verziója között csak patch-eltérés van (1.37.2 és 
 | Port | Hol figyel | Ki éri el | Miért |
 |---|---|---|---|
 | 9898/TCP (container) | a Pod IP-jén (pl. 10.244.0.6) | csak a clusteren belüli Podok, a `podinfo` Service-en (10.96.225.68:9898) keresztül | a Service típusa ClusterIP; nincs NodePort vagy LoadBalancer |
-| 9898/TCP (host) | `127.0.0.1:9898` és `[::1]:9898`, a `kubectl port-forward` nyitja | csak a saját gépem | kézzel indított, ideiglenes alagút a teszteléshez |
+| 9898/TCP (host) | `127.0.0.1:9898` és `[::1]:9898`, a `kubectl port-forward` nyitja | csak a saját gépem | kézzel indított, ideiglenes tunnel a teszteléshez |
 | 6443/TCP → host 37085 | `127.0.0.1:37085` | csak a saját gépem (kubectl) | a kind így publikálja az API szervert |
 
 Kivonat a hoston figyelő portokról (`C2-host-listening-ports.txt`):
@@ -97,16 +97,16 @@ HTTP/1.1 200 OK
 
 A Service mögött lévő tényleges Pod címét az EndpointSlice mutatja (`C2-service-endpoints.txt`: 10.244.0.6:9898).
 
-**Jogosultságok:** a podinfo image `app` felhasználóval fut (UID 100, GID 101), és nem rootként indítom. Az alkalmazás konténere minden Linux képességet eldob (`drop: ALL`), és nem kaphat magasabb jogot (`allowPrivilegeEscalation: false`). Hogy a `/data` könyvtárba írni tudjon, egy rövid init container a podinfo indulása előtt beállítja a könyvtár tulajdonosát (`chown 100:101 /data`, `chmod 0750 /data`). Ez a container rootként fut, de csak a `CHOWN` és a `FOWNER` képességet kapja meg. Kubernetesben az `fsGroup` beállítás szokott erre szolgálni, de a kind `local-path` tárolója hostPath alapú, és ott ez nem állítja át a tulajdonost.
+**Jogosultságok:** a podinfo image `app` felhasználóval fut (UID 100, GID 101), és nem rootként indítom. Az alkalmazás konténere minden Linux képességet eldob (`drop: ALL`), és nem kaphat magasabb jogot (`allowPrivilegeEscalation: false`). Hogy a `/data` könyvtárba írni tudjon, egy rövid init container a podinfo indulása előtt beállítja a könyvtár tulajdonosát (`chown 100:101 /data`, `chmod 0750 /data`). Ez a container rootként fut, de csak a `CHOWN` és a `FOWNER` képességet kapja meg.
 
 ## 4. Telepítés
 
 | Lépés | Parancs | Elvárt | Tényleges | Bizonyíték |
 |---|---|---|---|---|
 | Cluster | `kind create cluster --config deployment/kind-config.yaml` | a cluster elindul | 1. próba: `exit 127` (hibás kind bináris, lásd 9.2); 2. próba: sikeres, a node `Ready` | `C1-cluster-create.txt`, `C1-cluster-info.txt` |
-| Előnézet | `kubectl kustomize deployment/` | 4 erőforrás, 1 replica, image 6.14.1, `/data` csatolás | ugyanez | `C1-kustomize-render.txt` |
+| Előnézet | `kubectl kustomize deployment/` | 4 erőforrás, 1 replica, image 6.14.1, `/data` csatolás | Namespace, Service, PersistentVolumeClaim, Deployment; `replicas: 1`; `image: stefanprodan/podinfo:6.14.1`; `mountPath: /data` (`claimName: podinfo-data`) | `C1-kustomize-render.txt` |
 | Telepítés | `kubectl apply -k deployment/` | 4× `created` | 4× `created` | `C1-apply-1.txt` |
-| Várakozás | `kubectl -n mst rollout status deploy/podinfo` | `successfully rolled out` | ugyanez | `C1-rollout.txt` |
+| Várakozás | `kubectl -n mst rollout status deploy/podinfo` | `successfully rolled out` | `deployment "podinfo" successfully rolled out` | `C1-rollout.txt` |
 | Állapot | `kubectl -n mst get all,pvc -o wide; kubectl get pv` | PVC `Bound`, Pod `1/1 Running` | PVC `Bound` (`pvc-344730ef-…`), Pod `podinfo-59f7587cbd-t9sb4` `1/1 Running` | `C1-state.txt` |
 | Ismételt alkalmazás | `kubectl apply -k deployment/` + `kubectl diff -k deployment/` | 4× `unchanged`, üres diff | 4× `unchanged`, `NINCS ELTERES` | `C1-apply-2-idempotent.txt` |
 
@@ -135,7 +135,7 @@ HTTP/1.1 200 OK
 
 **Hogyan alkalmazható újra a konfiguráció, és hogyan hozható újra létre a container adatvesztés nélkül?** A `kubectl apply -k deployment/` bármikor újrafuttatható: mindig a fájlokban leírt állapotra hozza a clustert, és ha nincs eltérés, nem változtat semmit (`C1-apply-2-idempotent.txt`, `T06-apply-again-idempotent.txt`). Az alkalmazás Podját a `kubectl -n mst delete pod -l app.kubernetes.io/name=podinfo` paranccsal lehet újra létrehozni. A Deployment (pontosabban a ReplicaSet) ilyenkor magától új Podot indít, amely ugyanazt a `podinfo-data` PVC-t csatolja. A PVC egy külön Kubernetes objektum, a Pod törlése nem érinti.
 
-**A beadás előtti ellenőrzés: a README reprodukálhatósága.** Miután a YAML fájlokból kivettem a kommenteket, a futó clusteren a `kubectl diff -k deployment/` üres maradt (`C1-comment-cleanup.txt`), vagyis a kommentek törlése a konfigurációt nem változtatta meg. Ezután a README lépéseit szó szerint követve egy második, eldobható clusteren (`mst2`) a teljes életciklust megismételtem (`C1-readme-repro.txt`):
+**A beadás előtti ellenőrzés: a README reprodukálhatósága.** A README lépéseit szó szerint követve egy második, eldobható clusteren (`mst2`) a teljes életciklust megismételtem (`C1-readme-repro.txt`):
 
 - telepítés 6.14.1-gyel, a PVC `Bound` lett;
 - `/readyz` 200, a kliens Pod elérte a Service-t;
@@ -301,7 +301,7 @@ Not attempted. A T07–T10 ellenőrzéseket (Valkey cache, hiba és helyreállá
 | ID | Parancs (röviden) | Elvárt eredmény | Tényleges eredmény | Állapot | Bizonyíték |
 |---|---|---|---|---|---|
 | T01 | `curl -i http://127.0.0.1:9898/readyz` (port-forwardon át) | HTTP 200, `{"status":"OK"}` | HTTP 200, `{"status": "OK"}`; `/version` → 6.14.1 | PASS | `evidence/T01-T02-readyz.txt`, `evidence/T01-T02-version.txt` |
-| T02 | ugyanez a host shelljéből (független kliens), plusz egy kliens Pod a Service nevén | mindkét úton HTTP 200 | host: 200; kliens Pod: DNS → 10.96.225.68, 200 | PASS | `evidence/T01-T02-*.txt`, `evidence/C2-incluster-client.txt` |
+| T02 | `curl -i http://127.0.0.1:9898/readyz` és `/version` a host shelljéből (független kliens), plusz `curl http://podinfo:9898/readyz` egy kliens Podból a Service nevén | mindkét úton HTTP 200 | host: 200; kliens Pod: DNS → 10.96.225.68, 200 | PASS | `evidence/T01-T02-*.txt`, `evidence/C2-incluster-client.txt` |
 | T03 | `POST /store` (`--data-binary`), `GET /store/{hash}`, `cmp`, `sha256sum` | bájtra azonos tartalom | hash = SHA-1; `cmp` egyezés, SHA-256 `2df87d1b…` | PASS | `evidence/T03-*.txt` |
 | T04 | `kubectl delete pod …`, `GET /store/{hash}`, `cmp` | új Pod UID, azonos PVC, azonos bájtok | 1. kísérlet: az új Pod nem indult el (init hiba), az adat megmaradt. Javítás után: új UID, azonos PVC UID, `cmp` egyezés | PASS (az 1. kísérlet FAIL volt, lásd 5. és 9.2.) | `evidence/T04-*.txt` |
 | T05 | image tag 6.14.1 → 6.17.0 a `deployment.yaml`-ban, `kubectl apply -k`, `/version`, imageID | 6.17.0 fut, új image | `/version` 6.17.0, új digest `fa2f27c1…`, új ReplicaSet | PASS | `evidence/T05-*.txt` |
